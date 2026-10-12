@@ -1,0 +1,16 @@
+{
+  "id": "15-binary-search-hang",
+  "title": "Fix a binary search that hangs",
+  "kind": "bug fix",
+  "prompt": "search(sorted, target) in search.js should return the index of target in a sorted array, or -1. It hangs on some inputs. Fix it.",
+  "files": {
+    "search.js": "export function search(a, target) {\n  let lo = 0;\n  let hi = a.length - 1;\n  while (lo < hi) {\n    const mid = Math.floor((lo + hi) / 2);\n    if (a[mid] < target) lo = mid;\n    else hi = mid;\n  }\n  return a[lo] === target ? lo : -1;\n}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { execFileSync } from 'node:child_process';\n// Run in a child process with a timeout so a hang fails instead of freezing the grader\nconst run = (a, t) => JSON.parse(execFileSync(process.execPath, ['-e', `import('${new URL('../search.js', import.meta.url).href}').then(m => console.log(JSON.stringify(m.search(${JSON.stringify(a)}, ${t}))))`], { timeout: 3000 }).toString());\ntest('finds', () => { const a = [1, 3, 5, 7, 9, 11]; a.forEach((v, i) => assert.equal(run(a, v), i)); });\ntest('missing', () => { assert.equal(run([1, 3, 5], 4), -1); assert.equal(run([1, 3, 5], 6), -1); assert.equal(run([1, 3, 5], 0), -1); });\ntest('empty', () => assert.equal(run([], 1), -1));\n"
+  },
+  "solution": {
+    "search.js": "export function search(a, target) {\n  let lo = 0;\n  let hi = a.length - 1;\n  while (lo <= hi) {\n    const mid = Math.floor((lo + hi) / 2);\n    if (a[mid] === target) return mid;\n    if (a[mid] < target) lo = mid + 1;\n    else hi = mid - 1;\n  }\n  return -1;\n}\n"
+  }
+}

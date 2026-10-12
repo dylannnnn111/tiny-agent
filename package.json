@@ -1,0 +1,16 @@
+{
+  "name": "tiny-agent",
+  "version": "0.1.0",
+  "description": "A coding agent in about 300 lines of TypeScript, a 40-task benchmark, and an ablation of every part of the harness.",
+  "engines": { "node": ">=22.6" },
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
+    "check-tasks": "node --experimental-strip-types --no-warnings scripts/check-tasks.ts",
+    "agent": "node --experimental-strip-types --no-warnings scripts/agent.ts",
+    "eval": "node --experimental-strip-types --no-warnings scripts/eval.ts",
+    "eval:keychain": "ANTHROPIC_API_KEY=$(security find-generic-password -s aussie-data-mcp-anthropic -w) npm run eval --"
+  },
+  "license": "MIT",
+  "author": "Dylan Lewis"
+}

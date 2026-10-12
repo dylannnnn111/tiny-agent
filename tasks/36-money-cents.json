@@ -1,0 +1,17 @@
+{
+  "id": "36-money-cents",
+  "title": "Invoice totals are off by a cent",
+  "kind": "read the failure",
+  "prompt": "Invoice totals in invoice.js sometimes come out a fraction of a cent off, and the tests in test/ show it. Fix the code so money is handled properly; the tests stay as they are.",
+  "files": {
+    "invoice.js": "// Each line: { price, qty }. Returns the total in dollars.\nexport function total(lines) {\n  let sum = 0;\n  for (const l of lines) sum += l.price * l.qty;\n  return sum;\n}\n\nexport function withGst(amount) {\n  return amount * 1.1;\n}\n",
+    "test/invoice.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { total, withGst } from '../invoice.js';\ntest('cents add up', () => assert.equal(total([{ price: 0.1, qty: 1 }, { price: 0.2, qty: 1 }]), 0.3));\ntest('gst', () => assert.equal(withGst(19.9), 21.89));\n",
+    "package.json": "{ \"type\": \"module\", \"scripts\": { \"test\": \"node --test\" } }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { total, withGst } from '../invoice.js';\nimport { readFileSync } from 'node:fs';\ntest('test/invoice.test.js was not changed', () => assert.equal(readFileSync(new URL('../test/invoice.test.js', import.meta.url), 'utf8'), \"import { test } from 'node:test';\\nimport assert from 'node:assert/strict';\\nimport { total, withGst } from '../invoice.js';\\ntest('cents add up', () => assert.equal(total([{ price: 0.1, qty: 1 }, { price: 0.2, qty: 1 }]), 0.3));\\ntest('gst', () => assert.equal(withGst(19.9), 21.89));\\n\"));\n\ntest('more totals', () => {\n  assert.equal(total([{ price: 1.1, qty: 3 }]), 3.3);\n  assert.equal(total([{ price: 19.99, qty: 3 }, { price: 0.01, qty: 7 }]), 60.04);\n  assert.equal(total([]), 0);\n  assert.equal(total([{ price: 4.35, qty: 100 }]), 435);\n});\ntest('gst rounds to the cent', () => {\n  assert.equal(withGst(100), 110);\n  assert.equal(withGst(0.05), 0.06);\n  assert.equal(withGst(12.34), 13.57);\n});\n"
+  },
+  "solution": {
+    "invoice.js": "// Each line: { price, qty }. Returns the total in dollars, working in whole cents.\nconst cents = (x) => Math.round(x * 100);\n\nexport function total(lines) {\n  let sum = 0;\n  for (const l of lines) sum += cents(l.price) * l.qty;\n  return sum / 100;\n}\n\nexport function withGst(amount) {\n  return Math.round(cents(amount) * 1.1) / 100;\n}\n"
+  }
+}

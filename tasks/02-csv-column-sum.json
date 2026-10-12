@@ -1,0 +1,16 @@
+{
+  "id": "02-csv-column-sum",
+  "title": "Sum a CSV column with quoted fields",
+  "kind": "new code",
+  "prompt": "Implement sumColumn(csvText, columnName) in csv.js. The first line is the header. Fields may be wrapped in double quotes and quoted fields can contain commas and escaped quotes (\"\"). Empty or non-numeric values count as 0. Throw an Error if the column does not exist.",
+  "files": {
+    "csv.js": "// Return the sum of the numeric values in the named column.\nexport function sumColumn(csvText, columnName) {\n  throw new Error('not implemented');\n}\n",
+    "package.json": "{ \"type\": \"module\", \"scripts\": { \"test\": \"node --test\" } }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { sumColumn } from '../csv.js';\nconst csv = 'name,amount,note\\nA,10,plain\\n\"B, Ltd\",2.5,\"says \"\"hi\"\", twice\"\\nC,,empty\\nD,abc,bad\\n\"E\",7,x\\n';\ntest('sums with quotes and commas', () => assert.equal(sumColumn(csv, 'amount'), 19.5));\ntest('handles CRLF', () => assert.equal(sumColumn('a,b\\r\\n1,2\\r\\n3,4\\r\\n', 'b'), 6));\ntest('missing column throws', () => assert.throws(() => sumColumn(csv, 'nope')));\ntest('quoted header', () => assert.equal(sumColumn('\"x y\",z\\n1,2\\n', 'x y'), 1));\n"
+  },
+  "solution": {
+    "csv.js": "function parseLine(line) {\n  const out = [];\n  let cur = '';\n  let q = false;\n  for (let i = 0; i < line.length; i++) {\n    const c = line[i];\n    if (q) {\n      if (c === '\"' && line[i + 1] === '\"') { cur += '\"'; i++; }\n      else if (c === '\"') q = false;\n      else cur += c;\n    } else if (c === '\"') q = true;\n    else if (c === ',') { out.push(cur); cur = ''; }\n    else cur += c;\n  }\n  out.push(cur);\n  return out;\n}\nexport function sumColumn(csvText, columnName) {\n  const lines = csvText.split(/\\r?\\n/).filter((l) => l.length);\n  const head = parseLine(lines[0]);\n  const k = head.indexOf(columnName);\n  if (k < 0) throw new Error('no column ' + columnName);\n  let s = 0;\n  for (const l of lines.slice(1)) {\n    const v = Number(parseLine(l)[k]);\n    if (Number.isFinite(v)) s += v;\n  }\n  return s;\n}\n"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "10-parallel-order",
+  "title": "Fix results coming back out of order",
+  "kind": "bug fix",
+  "prompt": "fetchAll(ids, fetchOne) in fetch.js runs fetchOne for every id at the same time, but the results sometimes come back in the wrong order. Fix it so results are in the same order as ids, still running in parallel. If any fetch fails, fetchAll should reject with that error.",
+  "files": {
+    "fetch.js": "export async function fetchAll(ids, fetchOne) {\n  const results = [];\n  await Promise.all(ids.map((id) => fetchOne(id).then((r) => results.push(r))));\n  return results;\n}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { fetchAll } from '../fetch.js';\nconst slow = (id) => new Promise((r) => setTimeout(() => r(id * 10), (5 - id) * 15));\ntest('order kept', async () => assert.deepEqual(await fetchAll([1, 2, 3, 4], slow), [10, 20, 30, 40]));\ntest('parallel', async () => {\n  let running = 0, peak = 0;\n  await fetchAll([1, 2, 3], async (id) => { running++; peak = Math.max(peak, running); await new Promise((r) => setTimeout(r, 20)); running--; return id; });\n  assert.equal(peak, 3);\n});\ntest('rejects', async () => assert.rejects(fetchAll([1, 2], async (id) => { if (id === 2) throw new Error('boom'); return id; }), /boom/));\n"
+  },
+  "solution": {
+    "fetch.js": "export async function fetchAll(ids, fetchOne) {\n  return Promise.all(ids.map((id) => fetchOne(id)));\n}\n"
+  }
+}

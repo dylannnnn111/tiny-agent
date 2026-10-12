@@ -1,0 +1,16 @@
+{
+  "id": "14-token-bucket",
+  "title": "Rate limiter with a token bucket",
+  "kind": "new code",
+  "prompt": "Implement the TokenBucket class in bucket.js: new TokenBucket({ capacity, refillPerSecond, now }) where now is an optional function returning the time in milliseconds (default Date.now). tryTake(n = 1) returns true and removes n tokens if available, otherwise false and removes nothing. The bucket starts full and refills continuously, never above capacity.",
+  "files": {
+    "bucket.js": "export class TokenBucket {}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { TokenBucket } from '../bucket.js';\ntest('refills over time', () => {\n  let t = 0;\n  const b = new TokenBucket({ capacity: 3, refillPerSecond: 2, now: () => t });\n  assert.ok(b.tryTake(3));\n  assert.equal(b.tryTake(), false);\n  t = 499; assert.equal(b.tryTake(), false);\n  t = 500; assert.ok(b.tryTake());\n  t = 10_000; assert.ok(b.tryTake(3)); assert.equal(b.tryTake(), false);\n});\ntest('all or nothing', () => {\n  let t = 0;\n  const b = new TokenBucket({ capacity: 2, refillPerSecond: 1, now: () => t });\n  assert.equal(b.tryTake(5), false);\n  assert.ok(b.tryTake(2));\n});\n"
+  },
+  "solution": {
+    "bucket.js": "export class TokenBucket {\n  constructor({ capacity, refillPerSecond, now = Date.now }) {\n    this.capacity = capacity; this.rate = refillPerSecond; this.now = now;\n    this.tokens = capacity; this.last = now();\n  }\n  tryTake(n = 1) {\n    const t = this.now();\n    this.tokens = Math.min(this.capacity, this.tokens + ((t - this.last) / 1000) * this.rate);\n    this.last = t;\n    if (this.tokens + 1e-9 < n) return false;\n    this.tokens -= n;\n    return true;\n  }\n}\n"
+  }
+}

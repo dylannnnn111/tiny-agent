@@ -1,0 +1,16 @@
+{
+  "id": "20-debounce",
+  "title": "Debounce with cancel and flush",
+  "kind": "new code",
+  "prompt": "Implement debounce(fn, ms) in debounce.js. The returned function delays calling fn until ms milliseconds have passed since the last call, using the arguments of the last call. It also has .cancel() to drop a pending call and .flush() to run a pending call immediately (flush does nothing if nothing is pending).",
+  "files": {
+    "debounce.js": "export function debounce(fn, ms) {}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test, mock } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { debounce } from '../debounce.js';\ntest('waits and uses last args', () => {\n  mock.timers.enable({ apis: ['setTimeout'] });\n  const calls = [];\n  const d = debounce((...a) => calls.push(a), 100);\n  d(1); mock.timers.tick(50); d(2); mock.timers.tick(99);\n  assert.deepEqual(calls, []);\n  mock.timers.tick(1);\n  assert.deepEqual(calls, [[2]]);\n  mock.timers.reset();\n});\ntest('cancel and flush', () => {\n  mock.timers.enable({ apis: ['setTimeout'] });\n  const calls = [];\n  const d = debounce((x) => calls.push(x), 100);\n  d('a'); d.cancel(); mock.timers.tick(200);\n  assert.deepEqual(calls, []);\n  d('b'); d.flush();\n  assert.deepEqual(calls, ['b']);\n  mock.timers.tick(200);\n  assert.deepEqual(calls, ['b']);\n  d.flush();\n  assert.deepEqual(calls, ['b']);\n  mock.timers.reset();\n});\n"
+  },
+  "solution": {
+    "debounce.js": "export function debounce(fn, ms) {\n  let timer = null;\n  let args = null;\n  const run = () => { const a = args; timer = null; args = null; fn(...a); };\n  const d = (...a) => { args = a; clearTimeout(timer); timer = setTimeout(run, ms); };\n  d.cancel = () => { clearTimeout(timer); timer = null; args = null; };\n  d.flush = () => { if (timer !== null) { clearTimeout(timer); run(); } };\n  return d;\n}\n"
+  }
+}

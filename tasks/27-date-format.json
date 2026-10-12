@@ -1,0 +1,17 @@
+{
+  "id": "27-date-format",
+  "title": "Make the date test pass",
+  "kind": "read the failure",
+  "prompt": "The test in test/ fails. Make it pass by fixing dates.js. Do not change the test.",
+  "files": {
+    "dates.js": "// format(date, 'YYYY-MM-DD HH:mm:ss') using the date's local time\nconst pad = (n) => String(n).padStart(2, '0');\nexport function format(date, pattern) {\n  const parts = {\n    YYYY: String(date.getFullYear()),\n    MM: pad(date.getMonth()),\n    DD: pad(date.getDate()),\n    HH: String(date.getHours()),\n    mm: pad(date.getMinutes()),\n    ss: pad(date.getSeconds()),\n  };\n  return pattern.replace(/YYYY|MM|DD|HH|mm|ss/g, (t) => parts[t]);\n}\n",
+    "test/dates.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { format } from '../dates.js';\ntest('full pattern', () => assert.equal(format(new Date(2026, 0, 5, 9, 7, 3), 'YYYY-MM-DD HH:mm:ss'), '2026-01-05 09:07:03'));\n",
+    "package.json": "{ \"type\": \"module\", \"scripts\": { \"test\": \"node --test\" } }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { format } from '../dates.js';\nimport { readFileSync } from 'node:fs';\ntest('test/dates.test.js was not changed', () => assert.equal(readFileSync(new URL('../test/dates.test.js', import.meta.url), 'utf8'), \"import { test } from 'node:test';\\nimport assert from 'node:assert/strict';\\nimport { format } from '../dates.js';\\ntest('full pattern', () => assert.equal(format(new Date(2026, 0, 5, 9, 7, 3), 'YYYY-MM-DD HH:mm:ss'), '2026-01-05 09:07:03'));\\n\"));\n\ntest('december and evening', () => assert.equal(format(new Date(2025, 11, 31, 23, 59, 59), 'YYYY-MM-DD HH:mm:ss'), '2025-12-31 23:59:59'));\ntest('partial patterns', () => {\n  assert.equal(format(new Date(2026, 9, 8, 0, 0, 0), 'DD/MM/YYYY'), '08/10/2026');\n  assert.equal(format(new Date(2026, 9, 8, 14, 5, 0), 'HH:mm'), '14:05');\n  assert.equal(format(new Date(2026, 9, 8, 3, 5, 0), 'at HH:mm on DD'), 'at 03:05 on 08');\n});\n"
+  },
+  "solution": {
+    "dates.js": "// format(date, 'YYYY-MM-DD HH:mm:ss') using the date's local time\nconst pad = (n) => String(n).padStart(2, '0');\nexport function format(date, pattern) {\n  const parts = {\n    YYYY: String(date.getFullYear()),\n    MM: pad(date.getMonth() + 1),\n    DD: pad(date.getDate()),\n    HH: pad(date.getHours()),\n    mm: pad(date.getMinutes()),\n    ss: pad(date.getSeconds()),\n  };\n  return pattern.replace(/YYYY|MM|DD|HH|mm|ss/g, (t) => parts[t]);\n}\n"
+  }
+}

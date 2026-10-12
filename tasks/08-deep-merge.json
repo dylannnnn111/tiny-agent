@@ -1,0 +1,16 @@
+{
+  "id": "08-deep-merge",
+  "title": "Deep merge without mutation",
+  "kind": "new code",
+  "prompt": "Implement deepMerge(...objects) in merge.js. Plain objects are merged recursively, later arguments win, arrays and every other value are replaced rather than merged, undefined values in later objects do not overwrite, and none of the inputs may be mutated.",
+  "files": {
+    "merge.js": "export function deepMerge(...objects) {}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { deepMerge } from '../merge.js';\ntest('merges', () => {\n  const a = { x: 1, n: { a: 1, b: [1, 2] }, d: new Date(0) };\n  const b = { y: 2, n: { b: [3], c: { z: 1 } }, x: undefined };\n  const out = deepMerge(a, b, { n: { a: 5 } });\n  assert.deepEqual(out, { x: 1, y: 2, n: { a: 5, b: [3], c: { z: 1 } }, d: new Date(0) });\n});\ntest('no mutation', () => {\n  const a = { n: { a: 1 } };\n  const b = { n: { b: 2 } };\n  const out = deepMerge(a, b);\n  out.n.c = 3;\n  assert.deepEqual(a, { n: { a: 1 } });\n  assert.deepEqual(b, { n: { b: 2 } });\n});\ntest('empty', () => assert.deepEqual(deepMerge(), {}));\n"
+  },
+  "solution": {
+    "merge.js": "const plain = (v) => v !== null && typeof v === 'object' && Object.getPrototypeOf(v) === Object.prototype;\nexport function deepMerge(...objects) {\n  const out = {};\n  for (const o of objects) {\n    for (const [k, v] of Object.entries(o ?? {})) {\n      if (v === undefined) continue;\n      out[k] = plain(v) ? deepMerge(plain(out[k]) ? out[k] : {}, v) : v;\n    }\n  }\n  return out;\n}\n"
+  }
+}

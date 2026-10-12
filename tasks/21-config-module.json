@@ -1,0 +1,21 @@
+{
+  "id": "21-config-module",
+  "title": "Pull config reading into one module",
+  "kind": "multi-file",
+  "prompt": "src/db.js, src/mailer.js and src/server.js each read their own APP_* environment variables with defaults. Create src/config.js exporting loadConfig(env = process.env) that returns { dbUrl, mailFrom, port } (port as a number) using the same variables and defaults, and make all three modules get their values from it instead of reading process.env themselves. Nothing else should change.",
+  "files": {
+    "src/db.js": "export function dbUrl() {\n  return process.env.APP_DB_URL ?? 'sqlite://local.db';\n}\nexport function connect() {\n  return { url: dbUrl(), query: (sql) => [sql] };\n}\n",
+    "src/mailer.js": "export function mailFrom() {\n  return process.env.APP_MAIL_FROM ?? 'noreply@example.com';\n}\nexport function send(to, subject) {\n  return { from: mailFrom(), to, subject };\n}\n",
+    "src/server.js": "export function port() {\n  return Number(process.env.APP_PORT ?? 3000);\n}\nexport function describe() {\n  return 'listening on ' + port();\n}\n",
+    "package.json": "{ \"type\": \"module\", \"scripts\": { \"test\": \"node --test\" } }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\nimport { loadConfig } from '../src/config.js';\nimport { connect, dbUrl } from '../src/db.js';\nimport { mailFrom, send } from '../src/mailer.js';\nimport { describe, port } from '../src/server.js';\ntest('defaults', () => assert.deepEqual(loadConfig({}), { dbUrl: 'sqlite://local.db', mailFrom: 'noreply@example.com', port: 3000 }));\ntest('overrides', () => assert.deepEqual(loadConfig({ APP_DB_URL: 'pg://x', APP_MAIL_FROM: 'a@b.c', APP_PORT: '81' }), { dbUrl: 'pg://x', mailFrom: 'a@b.c', port: 81 }));\ntest('modules still work', () => {\n  process.env.APP_PORT = '4000';\n  process.env.APP_DB_URL = 'pg://live';\n  assert.equal(port(), 4000);\n  assert.equal(describe(), 'listening on 4000');\n  assert.equal(dbUrl(), 'pg://live');\n  assert.equal(connect().url, 'pg://live');\n  assert.equal(mailFrom(), 'noreply@example.com');\n  assert.equal(send('x@y.z', 'hi').from, 'noreply@example.com');\n});\ntest('modules use config.js and not process.env', () => {\n  for (const f of ['db', 'mailer', 'server']) {\n    const src = readFileSync(new URL('../src/' + f + '.js', import.meta.url), 'utf8');\n    assert.ok(src.includes('config.js'), f + '.js does not import config.js');\n    assert.ok(!src.includes('process.env'), f + '.js still reads process.env');\n  }\n});\n"
+  },
+  "solution": {
+    "src/config.js": "export function loadConfig(env = process.env) {\n  return {\n    dbUrl: env.APP_DB_URL ?? 'sqlite://local.db',\n    mailFrom: env.APP_MAIL_FROM ?? 'noreply@example.com',\n    port: Number(env.APP_PORT ?? 3000),\n  };\n}\n",
+    "src/db.js": "import { loadConfig } from './config.js';\nexport function dbUrl() {\n  return loadConfig().dbUrl;\n}\nexport function connect() {\n  return { url: dbUrl(), query: (sql) => [sql] };\n}\n",
+    "src/mailer.js": "import { loadConfig } from './config.js';\nexport function mailFrom() {\n  return loadConfig().mailFrom;\n}\nexport function send(to, subject) {\n  return { from: mailFrom(), to, subject };\n}\n",
+    "src/server.js": "import { loadConfig } from './config.js';\nexport function port() {\n  return loadConfig().port;\n}\nexport function describe() {\n  return 'listening on ' + port();\n}\n"
+  }
+}

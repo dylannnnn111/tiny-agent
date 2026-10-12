@@ -1,0 +1,16 @@
+{
+  "id": "09-parse-duration",
+  "title": "Parse durations like 1h30m",
+  "kind": "new code",
+  "prompt": "Implement parseDuration(text) in duration.js, returning seconds. Accept combinations of d, h, m and s units in that order, each at most once, with optional spaces between parts, like \"1h30m\", \"2d 4h\", \"45s\" and \"1.5h\". Throw an Error for anything else, including empty strings, units out of order and bare numbers.",
+  "files": {
+    "duration.js": "export function parseDuration(text) {}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { parseDuration } from '../duration.js';\ntest('valid', () => {\n  assert.equal(parseDuration('1h30m'), 5400);\n  assert.equal(parseDuration('2d 4h'), 187200);\n  assert.equal(parseDuration('45s'), 45);\n  assert.equal(parseDuration('1.5h'), 5400);\n  assert.equal(parseDuration('1d 1h 1m 1s'), 90061);\n});\ntest('invalid', () => { for (const s of ['', '10', '1m1h', '1h1h', 'h', '1x', '1h 30']) assert.throws(() => parseDuration(s), Error, s); });\n"
+  },
+  "solution": {
+    "duration.js": "export function parseDuration(text) {\n  const m = /^\\s*(?:(\\d+(?:\\.\\d+)?)d)?\\s*(?:(\\d+(?:\\.\\d+)?)h)?\\s*(?:(\\d+(?:\\.\\d+)?)m)?\\s*(?:(\\d+(?:\\.\\d+)?)s)?\\s*$/.exec(text);\n  if (!m || m.slice(1).every((x) => x === undefined)) throw new Error('bad duration: ' + text);\n  const [d, h, mi, s] = m.slice(1).map((x) => Number(x ?? 0));\n  return d * 86400 + h * 3600 + mi * 60 + s;\n}\n"
+  }
+}

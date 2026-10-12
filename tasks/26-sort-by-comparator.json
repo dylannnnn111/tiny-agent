@@ -1,0 +1,17 @@
+{
+  "id": "26-sort-by-comparator",
+  "title": "The tests fail - find out why",
+  "kind": "read the failure",
+  "prompt": "`npm test` fails in this project. Work out why and fix the code. The test itself is right, so leave it alone.",
+  "files": {
+    "sort.js": "// Sort a copy of items by one or more keys, ascending, keeping the original order for ties.\nexport function sortBy(items, ...keys) {\n  return [...items].sort((a, b) => {\n    for (const k of keys) {\n      if (a[k] !== b[k]) return a[k] > b[k];\n    }\n    return 0;\n  });\n}\n",
+    "test/sort.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { sortBy } from '../sort.js';\ntest('two keys', () => {\n  const rows = [{ team: 'b', score: 2 }, { team: 'a', score: 3 }, { team: 'b', score: 1 }, { team: 'a', score: 1 }];\n  assert.deepEqual(sortBy(rows, 'team', 'score'), [{ team: 'a', score: 1 }, { team: 'a', score: 3 }, { team: 'b', score: 1 }, { team: 'b', score: 2 }]);\n});\n",
+    "package.json": "{ \"type\": \"module\", \"scripts\": { \"test\": \"node --test\" } }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { sortBy } from '../sort.js';\nimport { readFileSync } from 'node:fs';\ntest('test/sort.test.js was not changed', () => assert.equal(readFileSync(new URL('../test/sort.test.js', import.meta.url), 'utf8'), \"import { test } from 'node:test';\\nimport assert from 'node:assert/strict';\\nimport { sortBy } from '../sort.js';\\ntest('two keys', () => {\\n  const rows = [{ team: 'b', score: 2 }, { team: 'a', score: 3 }, { team: 'b', score: 1 }, { team: 'a', score: 1 }];\\n  assert.deepEqual(sortBy(rows, 'team', 'score'), [{ team: 'a', score: 1 }, { team: 'a', score: 3 }, { team: 'b', score: 1 }, { team: 'b', score: 2 }]);\\n});\\n\"));\n\ntest('descending input', () => assert.deepEqual(sortBy([{ n: 3 }, { n: 2 }, { n: 1 }], 'n'), [{ n: 1 }, { n: 2 }, { n: 3 }]));\ntest('stable for ties', () => {\n  const rows = [{ k: 1, id: 'a' }, { k: 0, id: 'b' }, { k: 1, id: 'c' }, { k: 0, id: 'd' }];\n  assert.deepEqual(sortBy(rows, 'k').map((r) => r.id), ['b', 'd', 'a', 'c']);\n});\ntest('strings and numbers', () => {\n  const rows = [{ s: 'pear', n: 10 }, { s: 'apple', n: 9 }, { s: 'apple', n: 2 }];\n  assert.deepEqual(sortBy(rows, 's', 'n'), [{ s: 'apple', n: 2 }, { s: 'apple', n: 9 }, { s: 'pear', n: 10 }]);\n});\ntest('does not mutate', () => { const rows = [{ n: 2 }, { n: 1 }]; sortBy(rows, 'n'); assert.deepEqual(rows, [{ n: 2 }, { n: 1 }]); });\n"
+  },
+  "solution": {
+    "sort.js": "// Sort a copy of items by one or more keys, ascending, keeping the original order for ties.\nexport function sortBy(items, ...keys) {\n  return [...items].sort((a, b) => {\n    for (const k of keys) {\n      if (a[k] !== b[k]) return a[k] > b[k] ? 1 : -1;\n    }\n    return 0;\n  });\n}\n"
+  }
+}

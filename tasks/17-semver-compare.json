@@ -1,0 +1,16 @@
+{
+  "id": "17-semver-compare",
+  "title": "Compare version numbers",
+  "kind": "new code",
+  "prompt": "Implement compare(a, b) in semver.js for versions like \"1.2.10\" and \"2.0.0-beta.2\". Return -1, 0 or 1. Numeric parts compare as numbers. A pre-release version sorts before its release. Pre-release identifiers compare part by part: numbers numerically, text alphabetically, numbers before text, and a shorter list before a longer one when all else is equal. Also export sortVersions(list) returning a new sorted array.",
+  "files": {
+    "semver.js": "export function compare(a, b) {}\nexport function sortVersions(list) {}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { compare, sortVersions } from '../semver.js';\ntest('numeric', () => { assert.equal(compare('1.2.10', '1.2.9'), 1); assert.equal(compare('1.0.0', '1.0.0'), 0); assert.equal(compare('0.9.0', '1.0.0'), -1); });\ntest('prerelease', () => {\n  const order = ['1.0.0-alpha', '1.0.0-alpha.1', '1.0.0-alpha.beta', '1.0.0-beta', '1.0.0-beta.2', '1.0.0-beta.11', '1.0.0-rc.1', '1.0.0'];\n  const shuffled = [...order].reverse();\n  assert.deepEqual(sortVersions(shuffled), order);\n  assert.deepEqual(shuffled, [...order].reverse(), 'input untouched');\n});\n"
+  },
+  "solution": {
+    "semver.js": "function parse(v) {\n  const [core, pre] = v.split('-', 2).length === 2 ? [v.slice(0, v.indexOf('-')), v.slice(v.indexOf('-') + 1)] : [v, undefined];\n  return { nums: core.split('.').map(Number), pre: pre === undefined ? null : pre.split('.') };\n}\nfunction cmpId(x, y) {\n  const nx = /^\\d+$/.test(x), ny = /^\\d+$/.test(y);\n  if (nx && ny) return Math.sign(Number(x) - Number(y));\n  if (nx) return -1;\n  if (ny) return 1;\n  return x < y ? -1 : x > y ? 1 : 0;\n}\nexport function compare(a, b) {\n  const A = parse(a), B = parse(b);\n  for (let i = 0; i < 3; i++) if (A.nums[i] !== B.nums[i]) return A.nums[i] < B.nums[i] ? -1 : 1;\n  if (!A.pre && !B.pre) return 0;\n  if (!A.pre) return 1;\n  if (!B.pre) return -1;\n  for (let i = 0; i < Math.min(A.pre.length, B.pre.length); i++) { const c = cmpId(A.pre[i], B.pre[i]); if (c) return c; }\n  return Math.sign(A.pre.length - B.pre.length);\n}\nexport function sortVersions(list) { return [...list].sort(compare); }\n"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "12-transpose",
+  "title": "Fix matrix transpose for rectangles",
+  "kind": "bug fix",
+  "prompt": "transpose(matrix) in matrix.js works for square matrices but breaks on rectangular ones. Fix it. It should also return [] for an empty matrix and must not modify its input.",
+  "files": {
+    "matrix.js": "export function transpose(m) {\n  for (let i = 0; i < m.length; i++) {\n    for (let j = 0; j < i; j++) {\n      const t = m[i][j];\n      m[i][j] = m[j][i];\n      m[j][i] = t;\n    }\n  }\n  return m;\n}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { transpose } from '../matrix.js';\ntest('rectangle', () => assert.deepEqual(transpose([[1, 2, 3], [4, 5, 6]]), [[1, 4], [2, 5], [3, 6]]));\ntest('square', () => assert.deepEqual(transpose([[1, 2], [3, 4]]), [[1, 3], [2, 4]]));\ntest('empty', () => assert.deepEqual(transpose([]), []));\ntest('no mutation', () => { const m = [[1, 2]]; transpose(m); assert.deepEqual(m, [[1, 2]]); });\n"
+  },
+  "solution": {
+    "matrix.js": "export function transpose(m) {\n  if (m.length === 0) return [];\n  return m[0].map((_, j) => m.map((row) => row[j]));\n}\n"
+  }
+}

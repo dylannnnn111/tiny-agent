@@ -1,0 +1,19 @@
+{
+  "id": "19-extract-validator",
+  "title": "Refactor duplicated validation",
+  "kind": "refactor",
+  "prompt": "signup.js and invite.js both contain the same email-checking code. Move it into a new module email.js that exports isValidEmail(email), and use it from both files. Behaviour must not change.",
+  "files": {
+    "signup.js": "export function signup(email, password) {\n  const e = String(email).trim().toLowerCase();\n  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(e) || e.length > 254) return { ok: false, error: 'bad email' };\n  if (String(password).length < 8) return { ok: false, error: 'short password' };\n  return { ok: true, email: e };\n}\n",
+    "invite.js": "export function invite(emails) {\n  return emails.map((email) => {\n    const e = String(email).trim().toLowerCase();\n    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(e) || e.length > 254) return { email, sent: false };\n    return { email: e, sent: true };\n  });\n}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\nimport { isValidEmail } from '../email.js';\nimport { signup } from '../signup.js';\nimport { invite } from '../invite.js';\ntest('validator', () => { assert.equal(isValidEmail(' A@B.co '), true); assert.equal(isValidEmail('nope'), false); assert.equal(isValidEmail('a@' + 'b'.repeat(260) + '.com'), false); });\ntest('behaviour kept', () => {\n  assert.deepEqual(signup(' Dee@Mail.com ', 'longenough'), { ok: true, email: 'dee@mail.com' });\n  assert.deepEqual(signup('x', 'longenough'), { ok: false, error: 'bad email' });\n  assert.deepEqual(signup('a@b.co', 'short'), { ok: false, error: 'short password' });\n  assert.deepEqual(invite(['a@b.co', 'bad']), [{ email: 'a@b.co', sent: true }, { email: 'bad', sent: false }]);\n});\ntest('no duplicate regex left', () => {\n  for (const f of ['signup.js', 'invite.js']) assert.ok(!readFileSync(new URL('../' + f, import.meta.url), 'utf8').includes('[^\\\\s@]'), f + ' still has its own regex');\n});\n"
+  },
+  "solution": {
+    "email.js": "export function isValidEmail(email) {\n  const e = String(email).trim().toLowerCase();\n  return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(e) && e.length <= 254;\n}\n",
+    "signup.js": "import { isValidEmail } from './email.js';\nexport function signup(email, password) {\n  if (!isValidEmail(email)) return { ok: false, error: 'bad email' };\n  if (String(password).length < 8) return { ok: false, error: 'short password' };\n  return { ok: true, email: String(email).trim().toLowerCase() };\n}\n",
+    "invite.js": "import { isValidEmail } from './email.js';\nexport function invite(emails) {\n  return emails.map((email) => (isValidEmail(email) ? { email: String(email).trim().toLowerCase(), sent: true } : { email, sent: false }));\n}\n"
+  }
+}

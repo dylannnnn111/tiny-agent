@@ -1,0 +1,17 @@
+{
+  "id": "32-count-pairs-perf",
+  "title": "Make countPairs fast",
+  "kind": "perf",
+  "prompt": "countPairs in pairs.js gives the right answer but takes minutes on 200,000 numbers. Make it fast (well under a second) without changing what it returns, including when numbers repeat.",
+  "files": {
+    "pairs.js": "// How many pairs of positions (i < j) add up to target?\nexport function countPairs(nums, target) {\n  let count = 0;\n  for (let i = 0; i < nums.length; i++) {\n    for (let j = i + 1; j < nums.length; j++) {\n      if (nums[i] + nums[j] === target) count++;\n    }\n  }\n  return count;\n}\n",
+    "test/pairs.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { countPairs } from '../pairs.js';\ntest('small', () => assert.equal(countPairs([1, 5, 7, -1, 5], 6), 3));\n",
+    "package.json": "{ \"type\": \"module\", \"scripts\": { \"test\": \"node --test\" } }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { spawnSync } from 'node:child_process';\nimport { countPairs } from '../pairs.js';\nconst brute = (nums, t) => { let c = 0; for (let i = 0; i < nums.length; i++) for (let j = i + 1; j < nums.length; j++) if (nums[i] + nums[j] === t) c++; return c; };\ntest('agrees with brute force on random inputs', () => {\n  let seed = 7;\n  const rnd = (n) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };\n  for (let k = 0; k < 50; k++) {\n    const nums = Array.from({ length: 60 }, () => rnd(21) - 10);\n    const t = rnd(11) - 5;\n    assert.equal(countPairs(nums, t), brute(nums, t));\n  }\n  assert.equal(countPairs([3, 3, 3, 3], 6), 6);\n  assert.equal(countPairs([], 0), 0);\n  assert.equal(countPairs([0, 0, 0], 0), 3);\n});\ntest('200,000 numbers in under a second', () => {\n  const script = \"import { countPairs } from './pairs.js'; let s = 1; const r = () => { s = (s * 1103515245 + 12345) % 2147483648; return s % 1000; }; const nums = Array.from({ length: 200000 }, () => r()); console.log(countPairs(nums, 999));\";\n  const t0 = Date.now();\n  const r = spawnSync(process.execPath, ['--input-type=module', '-e', script], { cwd: new URL('../', import.meta.url), encoding: 'utf8', timeout: 5000 });\n  const ms = Date.now() - t0;\n  assert.equal(r.status, 0, 'finished (' + ms + 'ms): ' + (r.stderr || 'timed out'));\n  assert.ok(ms < 2500, 'took ' + ms + 'ms');\n  assert.match(r.stdout.trim(), /^\\d+$/);\n});\n"
+  },
+  "solution": {
+    "pairs.js": "// How many pairs of positions (i < j) add up to target?\nexport function countPairs(nums, target) {\n  const seen = new Map();\n  let count = 0;\n  for (const n of nums) {\n    count += seen.get(target - n) ?? 0;\n    seen.set(n, (seen.get(n) ?? 0) + 1);\n  }\n  return count;\n}\n"
+  }
+}

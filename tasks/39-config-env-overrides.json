@@ -1,0 +1,16 @@
+{
+  "id": "39-config-env-overrides",
+  "title": "Layered config with typed env overrides",
+  "kind": "feature",
+  "prompt": "Write config.js exporting loadConfig(defaults, file = {}, env = {}). Start from defaults, apply the values in file on top, then environment variables on top of that. An env var applies when its name is 'APP_' followed by the key in UPPER_SNAKE_CASE (maxRetries -> APP_MAX_RETRIES). Env values are strings, so convert them to the type of the default: numbers with Number() (throw an Error if that gives NaN), booleans from 'true'/'false' (throw for anything else), strings as they are. A key in file that is not in defaults throws an Error naming the key. Return a new object; do not change the inputs.",
+  "files": {
+    "config.js": "// loadConfig(defaults, file, env)\n",
+    "package.json": "{ \"type\": \"module\", \"scripts\": { \"test\": \"node --test\" } }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { loadConfig } from '../config.js';\nconst defaults = { port: 3000, debug: false, name: 'app', maxRetries: 3, dbUrl: 'sqlite://x' };\ntest('defaults only', () => assert.deepEqual(loadConfig(defaults), defaults));\ntest('file on top', () => assert.deepEqual(loadConfig(defaults, { port: 8080, name: 'web' }), { ...defaults, port: 8080, name: 'web' }));\ntest('env on top, typed', () => {\n  const env = { APP_PORT: '9000', APP_DEBUG: 'true', APP_MAX_RETRIES: '7', APP_DB_URL: 'pg://y', HOME: '/root' };\n  assert.deepEqual(loadConfig(defaults, { port: 1 }, env), { port: 9000, debug: true, name: 'app', maxRetries: 7, dbUrl: 'pg://y' });\n  assert.equal(loadConfig(defaults, {}, { APP_DEBUG: 'false' }).debug, false);\n});\ntest('bad values throw', () => {\n  assert.throws(() => loadConfig(defaults, {}, { APP_PORT: 'eighty' }), Error);\n  assert.throws(() => loadConfig(defaults, {}, { APP_DEBUG: 'yes' }), Error);\n  assert.throws(() => loadConfig(defaults, { colour: 'red' }), /colour/);\n});\ntest('inputs untouched', () => {\n  const d = { a: 1 }; const f = { a: 2 };\n  const out = loadConfig(d, f, { APP_A: '3' });\n  assert.deepEqual([d, f, out], [{ a: 1 }, { a: 2 }, { a: 3 }]);\n});\n"
+  },
+  "solution": {
+    "config.js": "const snake = (k) => 'APP_' + k.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase();\n\nfunction coerce(key, raw, example) {\n  if (typeof example === 'number') {\n    const n = Number(raw);\n    if (Number.isNaN(n)) throw new Error(key + ' must be a number, got ' + raw);\n    return n;\n  }\n  if (typeof example === 'boolean') {\n    if (raw === 'true') return true;\n    if (raw === 'false') return false;\n    throw new Error(key + ' must be true or false, got ' + raw);\n  }\n  return raw;\n}\n\nexport function loadConfig(defaults, file = {}, env = {}) {\n  const out = { ...defaults };\n  for (const [k, v] of Object.entries(file)) {\n    if (!(k in defaults)) throw new Error('unknown config key: ' + k);\n    out[k] = v;\n  }\n  for (const k of Object.keys(defaults)) {\n    const name = snake(k);\n    if (name in env) out[k] = coerce(k, env[name], defaults[k]);\n  }\n  return out;\n}\n"
+  }
+}

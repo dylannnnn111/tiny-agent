@@ -1,0 +1,17 @@
+{
+  "id": "01-fizzbuzz-off-by-one",
+  "title": "Fix an off-by-one bug",
+  "kind": "bug fix",
+  "prompt": "fizzbuzz(n) in fizzbuzz.js should return the FizzBuzz sequence from 1 to n inclusive, but the tests in test/ fail. Find the bug and fix it.",
+  "files": {
+    "fizzbuzz.js": "export function fizzbuzz(n) {\n  const out = [];\n  for (let i = 1; i < n; i++) {\n    if (i % 15 === 0) out.push('FizzBuzz');\n    else if (i % 3 === 0) out.push('Fizz');\n    else if (i % 5 === 0) out.push('Buzz');\n    else out.push(String(i));\n  }\n  return out;\n}\n",
+    "test/fizzbuzz.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { fizzbuzz } from '../fizzbuzz.js';\ntest('first 15', () => assert.deepEqual(fizzbuzz(15).slice(-1), ['FizzBuzz']));\n",
+    "package.json": "{ \"type\": \"module\", \"scripts\": { \"test\": \"node --test\" } }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { fizzbuzz } from '../fizzbuzz.js';\ntest('length', () => assert.equal(fizzbuzz(100).length, 100));\ntest('values', () => assert.deepEqual(fizzbuzz(5), ['1', '2', 'Fizz', '4', 'Buzz']));\ntest('zero', () => assert.deepEqual(fizzbuzz(0), []));\ntest('fifteen', () => assert.equal(fizzbuzz(15)[14], 'FizzBuzz'));\n"
+  },
+  "solution": {
+    "fizzbuzz.js": "export function fizzbuzz(n) {\n  const out = [];\n  for (let i = 1; i <= n; i++) {\n    if (i % 15 === 0) out.push('FizzBuzz');\n    else if (i % 3 === 0) out.push('Fizz');\n    else if (i % 5 === 0) out.push('Buzz');\n    else out.push(String(i));\n  }\n  return out;\n}\n"
+  }
+}

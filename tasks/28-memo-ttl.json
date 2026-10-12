@@ -1,0 +1,17 @@
+{
+  "id": "28-memo-ttl",
+  "title": "Cache entries never expire",
+  "kind": "read the failure",
+  "prompt": "The memoize test in test/ fails. Fix memo.js so cached entries expire properly. Leave the test as it is.",
+  "files": {
+    "memo.js": "// memoize(fn, { ttl, now }) caches results per argument list for ttl milliseconds\nexport function memoize(fn, { ttl = Infinity, now = Date.now } = {}) {\n  const cache = new Map();\n  const t = now();\n  return (...args) => {\n    const key = JSON.stringify(args);\n    const hit = cache.get(key);\n    if (hit && t - hit.at < ttl) return hit.value;\n    const value = fn(...args);\n    cache.set(key, { value, at: t });\n    return value;\n  };\n}\n",
+    "test/memo.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { memoize } from '../memo.js';\ntest('entries expire', () => {\n  let clock = 0;\n  let calls = 0;\n  const f = memoize((x) => { calls++; return x * 2; }, { ttl: 100, now: () => clock });\n  assert.equal(f(2), 4);\n  clock = 50;\n  assert.equal(f(2), 4);\n  assert.equal(calls, 1);\n  clock = 150;\n  assert.equal(f(2), 4);\n  assert.equal(calls, 2, 'recomputed after the ttl');\n});\n",
+    "package.json": "{ \"type\": \"module\", \"scripts\": { \"test\": \"node --test\" } }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { memoize } from '../memo.js';\nimport { readFileSync } from 'node:fs';\ntest('test/memo.test.js was not changed', () => assert.equal(readFileSync(new URL('../test/memo.test.js', import.meta.url), 'utf8'), \"import { test } from 'node:test';\\nimport assert from 'node:assert/strict';\\nimport { memoize } from '../memo.js';\\ntest('entries expire', () => {\\n  let clock = 0;\\n  let calls = 0;\\n  const f = memoize((x) => { calls++; return x * 2; }, { ttl: 100, now: () => clock });\\n  assert.equal(f(2), 4);\\n  clock = 50;\\n  assert.equal(f(2), 4);\\n  assert.equal(calls, 1);\\n  clock = 150;\\n  assert.equal(f(2), 4);\\n  assert.equal(calls, 2, 'recomputed after the ttl');\\n});\\n\"));\n\ntest('separate keys and refresh on recompute', () => {\n  let clock = 0;\n  let calls = 0;\n  const f = memoize((a, b) => { calls++; return a + b; }, { ttl: 10, now: () => clock });\n  f(1, 2); f(2, 1); f(1, 2);\n  assert.equal(calls, 2);\n  clock = 11;\n  f(1, 2);\n  assert.equal(calls, 3);\n  clock = 20;\n  f(1, 2);\n  assert.equal(calls, 3, 'the recomputed entry got a fresh timestamp');\n});\ntest('no ttl means forever, with the real clock', () => {\n  let calls = 0;\n  const f = memoize((x) => { calls++; return x; });\n  f(1); f(1);\n  assert.equal(calls, 1);\n});\n"
+  },
+  "solution": {
+    "memo.js": "// memoize(fn, { ttl, now }) caches results per argument list for ttl milliseconds\nexport function memoize(fn, { ttl = Infinity, now = Date.now } = {}) {\n  const cache = new Map();\n  return (...args) => {\n    const t = now();\n    const key = JSON.stringify(args);\n    const hit = cache.get(key);\n    if (hit && t - hit.at < ttl) return hit.value;\n    const value = fn(...args);\n    cache.set(key, { value, at: t });\n    return value;\n  };\n}\n"
+  }
+}

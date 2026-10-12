@@ -1,0 +1,16 @@
+{
+  "id": "18-todo-store",
+  "title": "Fix a filter and add a feature",
+  "kind": "feature",
+  "prompt": "todos.js is a small in-memory to-do store. list({ done }) should filter by done status when given and return everything otherwise, but list({ done: false }) returns every item. Fix that, and add remove(id) which deletes an item and returns true, or returns false if there is no such id.",
+  "files": {
+    "todos.js": "let items = [];\nlet nextId = 1;\nexport function reset() { items = []; nextId = 1; }\nexport function add(title) {\n  const item = { id: nextId++, title, done: false };\n  items.push(item);\n  return item;\n}\nexport function complete(id) {\n  const item = items.find((i) => i.id === id);\n  if (item) item.done = true;\n  return Boolean(item);\n}\nexport function list({ done } = {}) {\n  return done ? items.filter((i) => i.done === done) : [...items];\n}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test, beforeEach } from 'node:test';\nimport assert from 'node:assert/strict';\nimport * as t from '../todos.js';\nbeforeEach(() => t.reset());\ntest('filters', () => {\n  t.add('a'); const b = t.add('b'); t.complete(b.id);\n  assert.deepEqual(t.list({ done: false }).map((i) => i.title), ['a']);\n  assert.deepEqual(t.list({ done: true }).map((i) => i.title), ['b']);\n  assert.equal(t.list().length, 2);\n});\ntest('remove', () => {\n  const a = t.add('a'); t.add('b');\n  assert.equal(t.remove(a.id), true);\n  assert.equal(t.remove(a.id), false);\n  assert.deepEqual(t.list().map((i) => i.title), ['b']);\n});\n"
+  },
+  "solution": {
+    "todos.js": "let items = [];\nlet nextId = 1;\nexport function reset() { items = []; nextId = 1; }\nexport function add(title) {\n  const item = { id: nextId++, title, done: false };\n  items.push(item);\n  return item;\n}\nexport function complete(id) {\n  const item = items.find((i) => i.id === id);\n  if (item) item.done = true;\n  return Boolean(item);\n}\nexport function list({ done } = {}) {\n  return done === undefined ? [...items] : items.filter((i) => i.done === done);\n}\nexport function remove(id) {\n  const k = items.findIndex((i) => i.id === id);\n  if (k < 0) return false;\n  items.splice(k, 1);\n  return true;\n}\n"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "35-markdown-table",
+  "title": "Parse a markdown table and write CSV",
+  "kind": "new code",
+  "prompt": "Write table.js with two exports. parseTable(md) takes a markdown table (header row, separator row like |---|:--:|, then data rows; cells may be padded with spaces; a pipe inside a cell is escaped as \\|) and returns an array of objects keyed by the header names. toCsv(rows) turns such an array back into CSV text: a header line from the keys of the first row, then one line per row, lines joined with \\n and ending with \\n; a value containing a comma, a double quote or a newline is wrapped in double quotes with inner quotes doubled.",
+  "files": {
+    "table.js": "// parseTable(md) and toCsv(rows)\n",
+    "package.json": "{ \"type\": \"module\", \"scripts\": { \"test\": \"node --test\" } }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { parseTable, toCsv } from '../table.js';\nconst md = '| Name | Note |\\n|------|:----:|\\n| Ada  | first |\\n| Bob | a \\\\| b |\\n|Cy|  spaced out  |\\n';\ntest('parse', () => assert.deepEqual(parseTable(md), [{ Name: 'Ada', Note: 'first' }, { Name: 'Bob', Note: 'a | b' }, { Name: 'Cy', Note: 'spaced out' }]));\ntest('parse without outer pipes', () => assert.deepEqual(parseTable('a | b\\n--|--\\n1 | 2\\n'), [{ a: '1', b: '2' }]));\ntest('csv', () => assert.equal(toCsv([{ Name: 'Ada', Note: 'first' }, { Name: 'Bob', Note: 'x, y' }, { Name: 'Cy', Note: 'say \"hi\"' }]), 'Name,Note\\nAda,first\\nBob,\"x, y\"\\nCy,\"say \"\"hi\"\"\"\\n'));\ntest('csv newline', () => assert.equal(toCsv([{ a: 'l1\\nl2', b: '' }]), 'a,b\\n\"l1\\nl2\",\\n'));\ntest('round trip', () => assert.equal(toCsv(parseTable(md)), 'Name,Note\\nAda,first\\nBob,a | b\\nCy,spaced out\\n'));\n"
+  },
+  "solution": {
+    "table.js": "function splitRow(line) {\n  let s = line.trim();\n  if (s.startsWith('|')) s = s.slice(1);\n  if (s.endsWith('|') && !s.endsWith('\\\\|')) s = s.slice(0, -1);\n  const cells = [];\n  let cur = '';\n  for (let i = 0; i < s.length; i++) {\n    if (s[i] === '\\\\' && s[i + 1] === '|') { cur += '|'; i++; }\n    else if (s[i] === '|') { cells.push(cur.trim()); cur = ''; }\n    else cur += s[i];\n  }\n  cells.push(cur.trim());\n  return cells;\n}\n\nexport function parseTable(md) {\n  const lines = md.split('\\n').filter((l) => l.trim());\n  const head = splitRow(lines[0]);\n  return lines.slice(2).map((l) => Object.fromEntries(splitRow(l).map((c, i) => [head[i], c])));\n}\n\nconst esc = (v) => (/[\",\\n]/.test(v) ? '\"' + v.replace(/\"/g, '\"\"') + '\"' : v);\n\nexport function toCsv(rows) {\n  if (!rows.length) return '';\n  const keys = Object.keys(rows[0]);\n  return [keys.map(esc).join(','), ...rows.map((r) => keys.map((k) => esc(String(r[k] ?? ''))).join(','))].join('\\n') + '\\n';\n}\n"
+  }
+}

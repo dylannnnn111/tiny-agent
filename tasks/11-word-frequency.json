@@ -1,0 +1,16 @@
+{
+  "id": "11-word-frequency",
+  "title": "Top words in a text",
+  "kind": "data",
+  "prompt": "Implement topWords(text, n) in words.js: return the n most common words as [word, count] pairs. Words are runs of letters and apostrophes, compared case-insensitively and returned in lower case. Ignore leading and trailing apostrophes. Break ties alphabetically.",
+  "files": {
+    "words.js": "export function topWords(text, n) {}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { topWords } from '../words.js';\ntest('counts', () => assert.deepEqual(topWords(\"The cat. The dog! the CAT's toy, 'cat'\", 3), [['the', 3], ['cat', 2], [\"cat's\", 1]]));\ntest('ties alphabetical', () => assert.deepEqual(topWords('b a c b a c', 2), [['a', 2], ['b', 2]]));\ntest('empty', () => assert.deepEqual(topWords('  ... ', 5), []));\n"
+  },
+  "solution": {
+    "words.js": "export function topWords(text, n) {\n  const counts = new Map();\n  for (const raw of text.toLowerCase().match(/[a-z']+/g) ?? []) {\n    const w = raw.replace(/^'+|'+$/g, '');\n    if (w) counts.set(w, (counts.get(w) ?? 0) + 1);\n  }\n  return [...counts].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, n);\n}\n"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "07-roman-numerals",
+  "title": "Roman numerals both ways",
+  "kind": "new code",
+  "prompt": "Implement toRoman(n) for integers 1 to 3999 and fromRoman(s) in roman.js. Both throw a RangeError for invalid input, including non-canonical numerals like \"IIII\" or \"VX\".",
+  "files": {
+    "roman.js": "export function toRoman(n) {}\nexport function fromRoman(s) {}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { toRoman, fromRoman } from '../roman.js';\ntest('known', () => { assert.equal(toRoman(1994), 'MCMXCIV'); assert.equal(toRoman(3999), 'MMMCMXCIX'); assert.equal(fromRoman('XLII'), 42); });\ntest('round trip', () => { for (let i = 1; i < 4000; i++) assert.equal(fromRoman(toRoman(i)), i); });\ntest('invalid', () => {\n  for (const n of [0, 4000, 2.5, -1]) assert.throws(() => toRoman(n), RangeError);\n  for (const s of ['IIII', 'VX', 'IC', 'ABC', '', 'MMMM']) assert.throws(() => fromRoman(s), RangeError);\n});\n"
+  },
+  "solution": {
+    "roman.js": "const V = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];\nexport function toRoman(n) {\n  if (!Number.isInteger(n) || n < 1 || n > 3999) throw new RangeError('out of range');\n  let s = '';\n  for (const [v, r] of V) while (n >= v) { s += r; n -= v; }\n  return s;\n}\nexport function fromRoman(s) {\n  if (typeof s !== 'string' || !/^[MDCLXVI]+$/.test(s)) throw new RangeError('not a numeral');\n  let n = 0, i = 0;\n  for (const [v, r] of V) while (s.startsWith(r, i)) { n += v; i += r.length; }\n  if (i !== s.length || n > 3999 || toRoman(n) !== s) throw new RangeError('not canonical');\n  return n;\n}\n"
+  }
+}

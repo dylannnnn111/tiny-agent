@@ -1,0 +1,16 @@
+{
+  "id": "05-date-range-dst",
+  "title": "Fix a daylight saving bug",
+  "kind": "bug fix",
+  "prompt": "daysBetween(start, end) in dates.js should return every date from start to end inclusive as YYYY-MM-DD strings, but it skips or repeats days around daylight saving changes on some machines. Fix it so it works in any timezone. Inputs are YYYY-MM-DD strings.",
+  "files": {
+    "dates.js": "export function daysBetween(start, end) {\n  const out = [];\n  let d = new Date(start + 'T00:00:00');\n  const last = new Date(end + 'T00:00:00');\n  while (d <= last) {\n    out.push(d.toISOString().slice(0, 10));\n    d = new Date(d.getTime() + 24 * 60 * 60 * 1000);\n  }\n  return out;\n}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { execFileSync } from 'node:child_process';\n// Run the function under timezones with daylight saving\nfunction run(tz, a, b) {\n  const code = `import('${new URL('../dates.js', import.meta.url).href}').then(m => console.log(JSON.stringify(m.daysBetween('${a}', '${b}'))))`;\n  return JSON.parse(execFileSync(process.execPath, ['-e', code], { env: { ...process.env, TZ: tz } }).toString());\n}\nfor (const tz of ['Australia/Sydney', 'America/New_York', 'UTC']) {\n  test(`autumn change ${tz}`, () => assert.deepEqual(run(tz, '2026-04-04', '2026-04-06'), ['2026-04-04', '2026-04-05', '2026-04-06']));\n  test(`spring change ${tz}`, () => assert.deepEqual(run(tz, '2026-03-07', '2026-03-09'), ['2026-03-07', '2026-03-08', '2026-03-09']));\n  test(`october ${tz}`, () => assert.equal(run(tz, '2026-09-30', '2026-10-06').length, 7));\n  test(`same day ${tz}`, () => assert.deepEqual(run(tz, '2026-01-01', '2026-01-01'), ['2026-01-01']));\n}\n"
+  },
+  "solution": {
+    "dates.js": "export function daysBetween(start, end) {\n  const out = [];\n  let d = new Date(start + 'T00:00:00Z');\n  const last = new Date(end + 'T00:00:00Z');\n  while (d <= last) {\n    out.push(d.toISOString().slice(0, 10));\n    d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1));\n  }\n  return out;\n}\n"
+  }
+}

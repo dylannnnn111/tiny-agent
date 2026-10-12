@@ -1,0 +1,16 @@
+{
+  "id": "03-slugify",
+  "title": "Write a slugify function",
+  "kind": "new code",
+  "prompt": "Implement slugify(text) in slug.js: lower case, strip accents (é -> e), replace any run of characters that are not a-z or 0-9 with a single hyphen, and trim hyphens from both ends. Also export slugifyUnique(text, taken) that appends -2, -3 ... if the slug is already in the Set `taken`.",
+  "files": {
+    "slug.js": "// Turn a title into a URL slug.\nexport function slugify(text) {}\n\nexport function slugifyUnique(text, taken) {}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { slugify, slugifyUnique } from '../slug.js';\ntest('basic', () => assert.equal(slugify('  Hello, World!  '), 'hello-world'));\ntest('accents', () => assert.equal(slugify('Café Crème Brûlée'), 'cafe-creme-brulee'));\ntest('runs collapse', () => assert.equal(slugify('a -- b __ c'), 'a-b-c'));\ntest('empty', () => assert.equal(slugify('!!!'), ''));\ntest('unique', () => {\n  const taken = new Set(['post', 'post-2']);\n  assert.equal(slugifyUnique('Post', taken), 'post-3');\n  assert.equal(slugifyUnique('New', taken), 'new');\n});\n"
+  },
+  "solution": {
+    "slug.js": "export function slugify(text) {\n  return text.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');\n}\nexport function slugifyUnique(text, taken) {\n  const base = slugify(text);\n  if (!taken.has(base)) return base;\n  let n = 2;\n  while (taken.has(`${base}-${n}`)) n++;\n  return `${base}-${n}`;\n}\n"
+  }
+}

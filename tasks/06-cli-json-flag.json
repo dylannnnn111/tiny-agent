@@ -1,0 +1,16 @@
+{
+  "id": "06-cli-json-flag",
+  "title": "Add a --json flag to a CLI",
+  "kind": "feature",
+  "prompt": "stats.js is a small CLI: `node stats.js 3 1 4 1 5` prints the count, mean, min and max. Add a --json flag (anywhere in the arguments) that prints the same numbers as a single JSON object with keys count, mean, min, max instead. The plain output must not change. With no numbers it should print an error to stderr and exit with code 1.",
+  "files": {
+    "stats.js": "const nums = process.argv.slice(2).map(Number);\nconst count = nums.length;\nconst mean = nums.reduce((a, b) => a + b, 0) / count;\nconsole.log(`count ${count}`);\nconsole.log(`mean ${mean}`);\nconsole.log(`min ${Math.min(...nums)}`);\nconsole.log(`max ${Math.max(...nums)}`);\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { spawnSync } from 'node:child_process';\nconst script = new URL('../stats.js', import.meta.url).pathname;\nconst run = (...a) => spawnSync(process.execPath, [script, ...a], { encoding: 'utf8' });\ntest('plain output unchanged', () => assert.equal(run('3', '1', '4').stdout, 'count 3\\nmean 2.6666666666666665\\nmin 1\\nmax 4\\n'));\ntest('json anywhere', () => {\n  assert.deepEqual(JSON.parse(run('--json', '2', '4').stdout), { count: 2, mean: 3, min: 2, max: 4 });\n  assert.deepEqual(JSON.parse(run('2', '--json', '4').stdout), { count: 2, mean: 3, min: 2, max: 4 });\n});\ntest('no numbers', () => { const r = run('--json'); assert.equal(r.status, 1); assert.ok(r.stderr.length > 0); });\n"
+  },
+  "solution": {
+    "stats.js": "const args = process.argv.slice(2);\nconst json = args.includes('--json');\nconst nums = args.filter((a) => a !== '--json').map(Number);\nif (nums.length === 0) {\n  console.error('give me some numbers');\n  process.exit(1);\n}\nconst count = nums.length;\nconst mean = nums.reduce((a, b) => a + b, 0) / count;\nconst min = Math.min(...nums);\nconst max = Math.max(...nums);\nif (json) console.log(JSON.stringify({ count, mean, min, max }));\nelse {\n  console.log(`count ${count}`);\n  console.log(`mean ${mean}`);\n  console.log(`min ${min}`);\n  console.log(`max ${max}`);\n}\n"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "16-orders-report",
+  "title": "Write a report from JSON data",
+  "kind": "data",
+  "prompt": "data/orders.json has a list of orders. Write report.js so that `node report.js` creates report.md: a heading \"# Orders by customer\", then a markdown table with columns Customer, Orders and Total, one row per customer sorted by total (highest first), totals formatted like $1,234.50, then a final row \"**All**\" with the overall counts. Cancelled orders (status \"cancelled\") are left out. Then run it to create report.md.",
+  "solutionRun": "node report.js",
+  "files": {
+    "report.js": "// Read data/orders.json and write report.md\n",
+    "data/orders.json": "[\n  {\n    \"id\": 1,\n    \"customer\": \"Harbour Cafe\",\n    \"total\": 120.5,\n    \"status\": \"paid\"\n  },\n  {\n    \"id\": 2,\n    \"customer\": \"Bondi Bakes\",\n    \"total\": 80,\n    \"status\": \"paid\"\n  },\n  {\n    \"id\": 3,\n    \"customer\": \"Harbour Cafe\",\n    \"total\": 1114,\n    \"status\": \"paid\"\n  },\n  {\n    \"id\": 4,\n    \"customer\": \"Newtown Noodles\",\n    \"total\": 300,\n    \"status\": \"cancelled\"\n  },\n  {\n    \"id\": 5,\n    \"customer\": \"Bondi Bakes\",\n    \"total\": 19.99,\n    \"status\": \"paid\"\n  },\n  {\n    \"id\": 6,\n    \"customer\": \"Newtown Noodles\",\n    \"total\": 45.25,\n    \"status\": \"paid\"\n  }\n]\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\ntest('report', () => {\n  const md = readFileSync(new URL('../report.md', import.meta.url), 'utf8');\n  assert.match(md, /^# Orders by customer/m);\n  const rows = md.split('\\n').filter((l) => l.trim().startsWith('|')).map((l) => l.split('|').slice(1, -1).map((c) => c.trim()));\n  const body = rows.filter((r) => !/^:?-+:?$/.test(r[0]) && r[0] !== 'Customer');\n  assert.deepEqual(body, [\n    ['Harbour Cafe', '2', '$1,234.50'],\n    ['Bondi Bakes', '2', '$99.99'],\n    ['Newtown Noodles', '1', '$45.25'],\n    ['**All**', '5', '$1,379.74'],\n  ]);\n});\n"
+  },
+  "solution": {
+    "report.js": "import { readFileSync, writeFileSync } from 'node:fs';\nconst orders = JSON.parse(readFileSync(new URL('./data/orders.json', import.meta.url), 'utf8')).filter((o) => o.status !== 'cancelled');\nconst by = new Map();\nfor (const o of orders) {\n  const c = by.get(o.customer) ?? { n: 0, t: 0 };\n  c.n++; c.t += o.total;\n  by.set(o.customer, c);\n}\nconst money = (x) => '$' + x.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });\nconst rows = [...by].sort((a, b) => b[1].t - a[1].t).map(([c, v]) => `| ${c} | ${v.n} | ${money(v.t)} |`);\nconst all = orders.reduce((s, o) => s + o.total, 0);\nwriteFileSync(new URL('./report.md', import.meta.url), ['# Orders by customer', '', '| Customer | Orders | Total |', '| --- | --- | --- |', ...rows, `| **All** | ${orders.length} | ${money(all)} |`, ''].join('\\n'));\n"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "37-log-summary",
+  "title": "Summarise an access log",
+  "kind": "data",
+  "prompt": "data/access.log is a web server log in common log format. Write summarise.js so that `node summarise.js` writes summary.json with: requests (total lines), byStatus (an object from status code to count), topPaths (the three most requested paths as [path, count] pairs, most first, ties broken alphabetically; the path is everything before any \"?\"), and bytes (the sum of the response sizes, where \"-\" means 0). Run it to produce the file.",
+  "solutionRun": "node summarise.js",
+  "files": {
+    "data/access.log": "10.0.0.1 - - [08/Oct/2026:09:00:01 +1100] \"GET / HTTP/1.1\" 200 1024\n10.0.0.2 - - [08/Oct/2026:09:00:02 +1100] \"GET /about HTTP/1.1\" 200 2048\n10.0.0.1 - - [08/Oct/2026:09:00:03 +1100] \"GET /api/items?page=2 HTTP/1.1\" 200 512\n10.0.0.3 - - [08/Oct/2026:09:00:04 +1100] \"POST /api/items HTTP/1.1\" 201 64\n10.0.0.4 - - [08/Oct/2026:09:00:05 +1100] \"GET /missing HTTP/1.1\" 404 128\n10.0.0.1 - - [08/Oct/2026:09:00:06 +1100] \"GET / HTTP/1.1\" 200 1024\n10.0.0.5 - - [08/Oct/2026:09:00:07 +1100] \"GET /api/items?page=3 HTTP/1.1\" 500 -\n10.0.0.2 - - [08/Oct/2026:09:00:08 +1100] \"GET /about HTTP/1.1\" 304 -\n10.0.0.6 - - [08/Oct/2026:09:00:09 +1100] \"GET / HTTP/1.1\" 200 1024\n10.0.0.7 - - [08/Oct/2026:09:00:10 +1100] \"GET /contact HTTP/1.1\" 200 900\n10.0.0.1 - - [08/Oct/2026:09:00:11 +1100] \"GET /api/items HTTP/1.1\" 200 4096\n10.0.0.8 - - [08/Oct/2026:09:00:12 +1100] \"DELETE /api/items/3 HTTP/1.1\" 204 -\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\ntest('summary.json', () => {\n  const s = JSON.parse(readFileSync(new URL('../summary.json', import.meta.url), 'utf8'));\n  assert.equal(s.requests, 12);\n  assert.deepEqual(s.byStatus, { 200: 7, 201: 1, 204: 1, 304: 1, 404: 1, 500: 1 });\n  assert.deepEqual(s.topPaths, [['/api/items', 4], ['/', 3], ['/about', 2]]);\n  assert.equal(s.bytes, 10820);\n});\n"
+  },
+  "solution": {
+    "summarise.js": "import { readFileSync, writeFileSync } from 'node:fs';\nconst lines = readFileSync(new URL('./data/access.log', import.meta.url), 'utf8').split('\\n').filter(Boolean);\nconst byStatus = {};\nconst paths = {};\nlet bytes = 0;\nfor (const l of lines) {\n  const m = l.match(/\"(\\S+) (\\S+) [^\"]*\" (\\d{3}) (\\S+)$/);\n  const path = m[2].split('?')[0];\n  byStatus[m[3]] = (byStatus[m[3]] ?? 0) + 1;\n  paths[path] = (paths[path] ?? 0) + 1;\n  bytes += m[4] === '-' ? 0 : Number(m[4]);\n}\nconst topPaths = Object.entries(paths).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3);\nwriteFileSync(new URL('./summary.json', import.meta.url), JSON.stringify({ requests: lines.length, byStatus, topPaths, bytes }, null, 2) + '\\n');\n"
+  }
+}

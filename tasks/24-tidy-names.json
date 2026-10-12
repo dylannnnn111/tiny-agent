@@ -1,0 +1,18 @@
+{
+  "id": "24-tidy-names",
+  "title": "Tidy up messy names",
+  "kind": "vague spec",
+  "prompt": "data/people.txt has one name per line, typed by different people: odd spacing, ALL CAPS, lower case, and some written 'LAST, First'. Write names.js exporting normaliseName(raw) that returns the name the way you'd print it on a name badge, and tidy.js so that `node tidy.js` rewrites data/people.txt in place with every name normalised. Examples of what we want: '  john  SMITH ' -> 'John Smith', 'SMITH, jane' -> 'Jane Smith', \"mary-jane o'brien\" -> \"Mary-Jane O'Brien\". Run it when you're done.",
+  "solutionRun": "node tidy.js",
+  "files": {
+    "data/people.txt": "  john  SMITH \nSMITH, jane\nmary-jane o'brien\nANNE MARIE  WONG\nJONES,  SAM\nli,WEI\n",
+    "package.json": "{ \"type\": \"module\", \"scripts\": { \"test\": \"node --test\" } }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\nimport { normaliseName } from '../names.js';\ntest('examples', () => {\n  assert.equal(normaliseName('  john  SMITH '), 'John Smith');\n  assert.equal(normaliseName('SMITH, jane'), 'Jane Smith');\n  assert.equal(normaliseName(\"mary-jane o'brien\"), \"Mary-Jane O'Brien\");\n});\ntest('more of the same', () => {\n  assert.equal(normaliseName('ANNE MARIE  WONG'), 'Anne Marie Wong');\n  assert.equal(normaliseName('JONES,  SAM'), 'Sam Jones');\n  assert.equal(normaliseName('li,WEI'), 'Wei Li');\n  assert.equal(normaliseName('cher'), 'Cher');\n  assert.equal(normaliseName(\"D'ANGELO, carla-rose\"), \"Carla-Rose D'Angelo\");\n});\ntest('file was rewritten', () => {\n  assert.equal(readFileSync(new URL('../data/people.txt', import.meta.url), 'utf8'), \"John Smith\\nJane Smith\\nMary-Jane O'Brien\\nAnne Marie Wong\\nSam Jones\\nWei Li\\n\");\n});\n"
+  },
+  "solution": {
+    "names.js": "const cap = (w) => w.split(/([-'])/).map((p) => (p === '-' || p === \"'\" ? p : p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())).join('');\n\nexport function normaliseName(raw) {\n  let s = String(raw).trim().replace(/\\s+/g, ' ');\n  if (s.includes(',')) {\n    const [last, first] = s.split(',').map((x) => x.trim());\n    s = (first + ' ' + last).trim();\n  }\n  return s.split(' ').filter(Boolean).map(cap).join(' ');\n}\n",
+    "tidy.js": "import { readFileSync, writeFileSync } from 'node:fs';\nimport { normaliseName } from './names.js';\nconst file = new URL('./data/people.txt', import.meta.url);\nconst lines = readFileSync(file, 'utf8').split('\\n').filter((l) => l.trim());\nwriteFileSync(file, lines.map(normaliseName).join('\\n') + '\\n');\n"
+  }
+}

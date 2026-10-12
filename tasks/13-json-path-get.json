@@ -1,0 +1,16 @@
+{
+  "id": "13-json-path-get",
+  "title": "Read nested values by path",
+  "kind": "new code",
+  "prompt": "Implement get(obj, path, fallback) in get.js. Paths use dots and [index] for arrays, like \"a.b[0].c\" or \"items[2]\". Return fallback (default undefined) when any step is missing. A value that exists but is null or 0 should be returned as is.",
+  "files": {
+    "get.js": "export function get(obj, path, fallback) {}\n",
+    "package.json": "{ \"type\": \"module\" }\n"
+  },
+  "check": {
+    "hidden.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { get } from '../get.js';\nconst o = { a: { b: [{ c: 1 }, { c: 0 }], n: null }, items: ['x', 'y', 'z'] };\ntest('paths', () => { assert.equal(get(o, 'a.b[0].c'), 1); assert.equal(get(o, 'items[2]'), 'z'); assert.equal(get(o, 'a.b[1].c', 9), 0); });\ntest('null kept', () => assert.equal(get(o, 'a.n', 'fb'), null));\ntest('missing', () => { assert.equal(get(o, 'a.q.r', 'fb'), 'fb'); assert.equal(get(o, 'items[9]', 'fb'), 'fb'); assert.equal(get(o, 'a.n.x', 'fb'), 'fb'); assert.equal(get(o, 'zz'), undefined); });\n"
+  },
+  "solution": {
+    "get.js": "export function get(obj, path, fallback) {\n  const keys = path.replace(/\\[(\\d+)\\]/g, '.$1').split('.').filter(Boolean);\n  let cur = obj;\n  for (const k of keys) {\n    if (cur === null || cur === undefined || !(k in Object(cur))) return fallback;\n    cur = cur[k];\n  }\n  return cur;\n}\n"
+  }
+}
