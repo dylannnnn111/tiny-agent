@@ -13,6 +13,8 @@
 //   MAX_STEPS=30              model calls per task before giving up
 //   DRY=1                     list the cells that would run and the ones already done, then stop
 // Prices come from prices.json ($ per million tokens, matched by substring of the model id).
+// Finished cells are re-priced from their saved token counts on every run, so after fixing prices.json,
+// rerun the same command with full model ids (MODELS=claude-sonnet-5-5,...) - no API key or calls needed.
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runAgent } from '../src/agent.ts';
@@ -25,10 +27,6 @@ import { CONFIGS } from '../src/tools.ts';
 import type { Features } from '../src/tools.ts';
 
 const key = process.env.ANTHROPIC_API_KEY;
-if (!key && !process.env.DRY) {
-  console.error('Set ANTHROPIC_API_KEY first (or use npm run eval:keychain).');
-  process.exit(1);
-}
 const list = (s: string | undefined, fallback: string) => (s || fallback).split(',').map((x) => x.trim()).filter(Boolean);
 const configNames = list(process.env.CONFIGS, 'full').flatMap((c) => (c === 'all' ? Object.keys(CONFIGS) : [c]));
 for (const c of configNames) if (!CONFIGS[c]) throw new Error(`Unknown config ${c}. Pick from: ${Object.keys(CONFIGS).join(', ')}`);
@@ -40,15 +38,24 @@ const NAME = process.env.NAME || new Date().toISOString().slice(0, 10);
 const outDir = join('runs', NAME);
 mkdirSync(outDir, { recursive: true });
 
-type Price = { input: number; output: number };
+/** $ per million tokens. cacheWrite and cacheRead default to 1.25x and 0.1x input; newer models differ, so set them. */
+type Price = { input: number; output: number; cacheWrite?: number; cacheRead?: number };
 const prices: Record<string, Price> = existsSync('prices.json') ? JSON.parse(readFileSync('prices.json', 'utf8')) : {};
 const priceFor = (model: string): Price | null => {
   const hit = Object.keys(prices).find((k) => model.includes(k));
   return hit ? prices[hit] : null;
 };
-/** Cache writes cost 1.25x the input price and cache reads 0.1x (Anthropic's standard ratios). */
 const costOf = (r: Pick<AgentResult, 'inputTokens' | 'outputTokens' | 'cacheWriteTokens' | 'cacheReadTokens'>, p: Price | null) =>
-  p === null ? null : Math.round(((r.inputTokens + 1.25 * r.cacheWriteTokens + 0.1 * r.cacheReadTokens) * p.input + r.outputTokens * p.output) / 1e6 * 10000) / 10000;
+  p === null
+    ? null
+    : Math.round(
+        (r.inputTokens * p.input +
+          r.cacheWriteTokens * (p.cacheWrite ?? 1.25 * p.input) +
+          r.cacheReadTokens * (p.cacheRead ?? 0.1 * p.input) +
+          r.outputTokens * p.output) /
+          1e6 *
+          10000,
+      ) / 10000;
 
 const tasks = loadTasks(process.argv.slice(2));
 const allTasks = loadTasks();
@@ -154,11 +161,15 @@ for (const modelName of modelNames)
     for (let run = 1; run <= RUNS; run++)
       for (const task of tasks) {
         const prev = done(modelName, config, run, task.id);
-        if (prev) cells.push(prev);
+        if (prev) cells.push({ ...prev, cost: prev.status === 'error' ? prev.cost : costOf(prev, priceFor(modelName)) });
         else jobs.push({ modelName, config, run, task });
       }
 console.log(`${NAME}: ${modelNames.join(', ')} x ${configNames.join(', ')} x ${RUNS} run(s) x ${tasks.length} tasks = ${cells.length + jobs.length} cells, ${cells.length} already done, ${jobs.length} to run.`);
 if (process.env.DRY) process.exit(0);
+if (jobs.length && !key) {
+  console.error('Set ANTHROPIC_API_KEY first (or use npm run eval:keychain).');
+  process.exit(1);
+}
 
 const models = Object.fromEntries(modelNames.map((m) => [m, claude(m, key!)]));
 const label = (j: Job) => `${j.modelName.replace(/^claude-/, '')} ${j.config.padEnd(11)} r${j.run} ${j.task.id.padEnd(28)}`;
