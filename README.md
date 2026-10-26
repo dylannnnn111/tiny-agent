@@ -1,5 +1,7 @@
 # Tiny Agent
 
+[![CI](https://github.com/dylannnnn111/tiny-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/dylannnnn111/tiny-agent/actions/workflows/ci.yml)
+
 A coding agent in about 300 lines of TypeScript, with nothing hidden: no SDK, no framework, plain `fetch` to the Claude API. It can list, read, edit and write files and run commands in one folder, and it keeps going until it decides the job is done.
 
 The interesting part is the ablation. Every piece of the harness around the model has a switch, and the eval runs the same 40 tasks with each piece turned off, so you can see what each one is actually worth.
@@ -55,6 +57,13 @@ Every cell (model x config x run x task) is written to `runs/<NAME>/...` as soon
 ## Safety
 
 The agent runs real shell commands on your machine. They run inside the task folder with a stripped-down environment, and a few obviously dangerous commands are refused, but that is a speed bump, not a sandbox. The benchmark only ever gives it a temporary copy of a task. If you point it at your own work, use a copy, or run it in a container.
+
+The Dockerfile does that: the container only sees the folder you mount and runs as an unprivileged user.
+
+```
+docker build -t tiny-agent .
+docker run --rm -it -e ANTHROPIC_API_KEY -v "$PWD/some-copy:/work" tiny-agent "make the tests pass"
+```
 
 ## Licence
 
