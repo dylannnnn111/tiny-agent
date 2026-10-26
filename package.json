@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
+    "coverage": "node --experimental-strip-types --no-warnings --test --experimental-test-coverage test/*.test.ts",
     "check-tasks": "node --experimental-strip-types --no-warnings scripts/check-tasks.ts",
     "agent": "node --experimental-strip-types --no-warnings scripts/agent.ts",
     "eval": "node --experimental-strip-types --no-warnings scripts/eval.ts",
